@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html><head><title>FLUX REPL — Bytecode Playground</title>
+<style>
+body{font-family:monospace;background:#1a1a2e;color:#e0e0e0;margin:0;padding:20px}
+h1{color:#e94560;border-bottom:2px solid #e94560}
+.editor{width:100%;height:200px;background:#16213e;color:#0f3460;border:2px solid #e94560;
+        font-family:monospace;font-size:14px;padding:10px;box-sizing:border-box}
+.btn{background:#e94560;color:white;border:none;padding:10px 20px;margin:10px 5px;
+     cursor:pointer;font-family:monospace;font-weight:bold}
+.btn:hover{background:#c81e45}
+.output{background:#0f3460;padding:15px;margin:10px 0;border-left:3px solid #e94560}
+.registers{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin:10px 0}
+.reg{background:#16213e;padding:5px;text-align:center;font-size:12px}
+.reg-name{color:#e94560}.reg-val{color:#53d8fb;font-size:16px}
+pre{overflow-x:auto}
+.hex{color:#53d8fb}
+</style></head>
+<body>
+<h1>🔮 FLUX REPL — Bytecode Playground</h1>
+<p>Write FLUX assembly, see bytecodes, execute and inspect registers.</p>
+
+<textarea class="editor" id="source">
+; Fibonacci sequence
+MOVI R0, 1     ; a = 1
+MOVI R1, 1     ; b = 1
+MOVI R2, 10    ; counter = 10
+; loop:
+ADD R3, R0, R1 ; c = a + b
+MOV R0, R1     ; a = b
+MOV R1, R3     ; b = c
+DEC R2         ; counter--
+JNZ R2, -14    ; back to ADD
+HALT</textarea>
+<br>
+<button class="btn" onclick="assemble()">⚡ Assemble</button>
+<button class="btn" onclick="run()">▶ Execute</button>
+<button class="btn" onclick="clearOutput()">🗑 Clear</button>
+
+<div id="output"></div>
+
+<script>
+const OPCODES={HALT:0x00,NOP:0x01,INC:0x08,DEC:0x09,NOT:0x0A,NEG:0x0B,
+PUSH:0x0C,POP:0x0D,STRIPCONF:0x17,MOVI:0x18,ADDI:0x19,SUBI:0x1A,
+ADD:0x20,SUB:0x21,MUL:0x22,DIV:0x23,MOD:0x24,AND:0x25,OR:0x26,XOR:0x27,
+MIN:0x2A,MAX:0x2B,CMP_EQ:0x2C,CMP_LT:0x2D,CMP_GT:0x2E,CMP_NE:0x2F,
+MOV:0x3A,JZ:0x3C,JNZ:0x3D,MOVI16:0x40,JMP:0x43,LOOP:0x46};
+
+function assemble(){
+  // Client-side assembler (simplified)
+  const src=document.getElementById('source').value;
+  const lines=src.split('\n').filter(l=>l.trim()&&!l.trim().startsWith(';'));
+  let bc=[];
+  for(let line of lines){
+    line=line.split(';')[0].trim();
+    if(!line)continue;
+    const parts=line.replace(/,/g,' ').split(/\s+/);
+    const op=parts[0].toUpperCase();
+    if(!OPCODES[op]){document.getElementById('output').innerHTML=`<div class="output"><span style="color:red">Error: Unknown opcode ${op}</span></div>`;return;}
+    bc.push(OPCODES[op]);
+    if(parts.length>1)bc.push(parseInt(parts[1].replace('R',''))||0);
+    if(parts.length>2)bc.push(parseInt(parts[2].replace('R',''))||0);
+    if(parts.length>3)bc.push(parseInt(parts[3].replace('R',''))||0);
+  }
+  bc.push(0x00);
+  const hex=bc.map(b=>b.toString(16).padStart(2,'0')).join(' ');
+  document.getElementById('output').innerHTML=`<div class="output"><b>Bytecode (${bc.length} bytes):</b><br><span class="hex">${hex}</span></div>`;
+}
+function clearOutput(){document.getElementById('output').innerHTML='';}
+</script>
+</body></html>
